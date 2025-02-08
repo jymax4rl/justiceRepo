@@ -1,0 +1,80 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f4f4;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+.loginWrapper {
+display: grid
+;
+height: 50vh;
+width: 85vw;
+grid-template-rows: auto auto;
+/* gap: 20px; */
+background: white;
+padding: 10px 15px 15px 10px;
+border-radius: 10px;
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+max-width: 320px;
+text-align: center;
+}
+.logo img {
+    
+width: 150px;
+/* margin: 20px auto -30px; */
+margin-top: 20px;
+margin-bottom: -3em;
+
+}
+.login-form {
+    display: grid;
+    gap: 10px;
+}
+
+.login-container{
+display:grid;
+grid-template-columns:1fr auto;
+background: #f1f1f1;
+align-items: center;
+    background: #f1f1f1;
+    padding: 5px;
+    border-radius: 5px;
+}
+.password-container {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    background: #f1f1f1;
+    padding: 5px;
+    border-radius: 5px;
+}
+.login-container input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+}
+.password-container input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+}
+.toggle-password {
+    cursor: pointer;
+}
+.options {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+}
+.login-button {
+    background: blue;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}

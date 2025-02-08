@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Form</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+       
+    </style>
+</head>
+<body>
+    <div class="loginWrapper">
+        <div class="logo">
+            <img src="image.png" alt="Optimum Automotive Logo">
+        </div>
+        <form class="login-form">
+          
+            <label for="login">Login</label>
+          <div class= "login-container">
+            <input type="text" id="login" name="login" required>
+          </div>
+
+            <label for="password">Mot de passe</label>
+            <div class="password-container">
+                <input type="password" id="password" name="password" required>
+                <span class="toggle-password"></span>
+            </div>
+
+            <div class="options">
+                <label>
+                    <input type="checkbox"> Rester connecté
+                </label>
+                <a href="#" class="forgot-password">Mot de passe oublié</a>
+            </div>
+
+            <button type="submit" class="login-button">Connexion</button>
+        </form>
+    </div>
+</body>
+</html>
