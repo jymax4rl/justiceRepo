@@ -10,6 +10,21 @@
     </style>
 </head>
 <body>
+    <div class="cookie-banner" id="cookieBanner">
+        <p>Nous utilisons des cookies pour améliorer votre expérience sur notre site. En continuant, vous acceptez notre utilisation des cookies.</p>
+        <button id="acceptCookies">Accepter</button>
+    </div>
+    <script>
+        document.getElementById("acceptCookies").addEventListener("click", function() {
+            document.getElementById("cookieBanner").style.display = "none";
+            localStorage.setItem("cookiesAccepted", "true");
+        });
+    
+        if (localStorage.getItem("cookiesAccepted")) {
+            document.getElementById("cookieBanner").style.display = "none";
+        }
+    </script>
+    
     <div class="loginWrapper">
         <div class="logo">
             <img src="image.png" alt="Optimum Automotive Logo">
