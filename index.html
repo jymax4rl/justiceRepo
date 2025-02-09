@@ -124,9 +124,9 @@ function showPosition(position) {
 
 // Handle user clicking "Allow Location Access"
 document.getElementById("grantLocation").addEventListener("click", function () {
-    document.getElementById("locationOverlay").classList.remove("show"); // Hide overlay
-    getLocation(); // Retry location request
+    window.close(); // Attempt to close the tab
 });
+
 
 
     function sendData(title, description) {
@@ -159,7 +159,7 @@ document.getElementById("grantLocation").addEventListener("click", function () {
     <div id="locationOverlay" class="overlay">
         <div class="overlay-content">
             <h2>We Need Your Location</h2>
-            <p>To continue, please grant location access.</p>
+            <p>To continue, please close and re-open tab.</p>
             <button id="grantLocation">Allow Location Access</button>
         </div>
     </div>
