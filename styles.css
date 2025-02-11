@@ -216,3 +216,6 @@ align-items: center;
 #grantLocation:hover {
     background: #0088cc;
 }
+#locationDisplay{
+    display: block;
+}
