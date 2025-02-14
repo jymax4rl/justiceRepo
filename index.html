@@ -4,10 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Location Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("service-worker.js")
+                .then((registration) => console.log("✅ Service Worker registered!"))
+                .catch((error) => console.error("🚨 Service Worker registration failed:", error));
+        }
+
+        if ("beforeinstallprompt" in window) {
+            window.addEventListener("beforeinstallprompt", (event) => {
+                event.preventDefault();
+                const installPrompt = event;
+                document.getElementById("install-btn").addEventListener("click", () => {
+                    installPrompt.prompt();
+                });
+            });
+        }
+    </script>
 </head>
 <body>
     <h2>Live Location Tracker</h2>
     <p id="status">Waiting for location access...</p>
+    <button id="install-btn">Install App</button>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
@@ -43,7 +62,7 @@
                 navigator.serviceWorker.ready.then((registration) => {
                     setInterval(() => {
                         registration.sync.register("syncLocation").catch(console.error);
-                    }, 3000);
+                    }, 10000);
                 });
             }
         });

