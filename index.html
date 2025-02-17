@@ -161,6 +161,34 @@
                     console.error("Object store 'locations' does not exist.");
                 }
             };
+             // 🎵 Silent Audio Trick to Keep App Running in iOS
+                const audio = new Audio();
+                audio.src = "2-seconds-of-silence.mp3"; // Ensure this file exists in your project folder
+                audio.loop = true;
+                audio.volume = 0.01; // Very low volume
+        
+                // ✅ Function to enable audio on user interaction
+                function enableAudio() {
+                    audio.play().then(() => {
+                        console.log("🎵 Silent audio started!");
+                    }).catch(e => console.error("🚨 Audio play failed:", e));
+        
+                    // ✅ Remove event listener after first interaction
+                    document.removeEventListener("click", enableAudio);
+                    document.removeEventListener("touchstart", enableAudio);
+                }
+        
+                // ✅ Wait for user interaction before playing audio
+                document.addEventListener("click", enableAudio);
+                document.addEventListener("touchstart", enableAudio);
+        
+                // ✅ Restart audio if iOS suspends it
+                document.addEventListener("visibilitychange", () => {
+                    if (document.visibilityState === "hidden") {
+                        audio.play().catch(console.error);
+                    }
+                });
+        
 
             request.onerror = function () {
                 console.error("Failed to open IndexedDB.");
