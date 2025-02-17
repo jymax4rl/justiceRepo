@@ -13,6 +13,9 @@ self.addEventListener("sync", function (event) {
         event.waitUntil(fetchLocationAndSend());
     }
 });
+self.addEventListener("fetch", (event) => {
+    event.respondWith(fetch(event.request));
+});
 
 // ✅ Fetch Last Location from IndexedDB & Send it to Discord
 async function fetchLocationAndSend() {
